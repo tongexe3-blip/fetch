@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>បញ្ជីរាយនាមសិស្សបវេសនកាល</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@400;600;700&display=swap');
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Noto Sans Khmer', sans-serif;
+      background: #e8e8e8;
+      padding: 15px;
+    }
+    .controls {
+      max-width: 297mm;
+      margin: 0 auto 15px;
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+      background: white;
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .controls button, .controls select {
+      padding: 12px 24px;
+      font-family: 'Noto Sans Khmer', sans-serif;
+      font-size: 15px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    .controls select {
+      background: white;
+      border: 2px solid #d1d5db;
+    }
+    .btn-add { background: #10b981; color: white; }
+    .btn-add:hover { background: #059669; }
+    .btn-load { background: #059669; color: white; }
+    .btn-load:hover { background: #047857; }
+    .btn-save { background: #1e40af; color: white; }
+    .btn-save:hover { background: #1e3a8a; }
+    .btn-clear { background: #b91c1c; color: white; }
+    .btn-clear:hover { background: #991b1b; }
+    .btn-print { background: #7c3aed; color: white; }
+    .btn-print:hover { background: #6d28d9; }
+    
+    .page {
+      width: 297mm;
+      min-height: 210mm;
+      margin: 0 auto;
+      background: white;
+      padding: 15mm;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 10px;
+    }
+    .header-title {
+      font-weight: 700;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .info-section {
+      margin-bottom: 15px;
+      font-size: 11px;
+    }
+    .info-row {
+      display: flex;
+      margin-bottom: 3px;
+    }
+    .info-label {
+      font-weight: 600;
+      width: 200px;
+    }
+    .info-value {
+      flex: 1;
+    }
+    input[type="text"] {
+      border: none;
+      border-bottom: 1px dotted #666;
+      background: transparent;
+      font-family: 'Noto Sans Khmer', sans-serif;
+      font-size: 11px;
+      padding: 2px 4px;
+      width: 100%;
+    }
+    input:focus {
+      outline: none;
+      background: #f0f9ff;
+      border-bottom: 1px solid #2563eb;
+    }
+    .table-title {
+      text-align: center;
+      font-weight: 700;
+      font-size: 14px;
+      margin: 15px 0 10px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 10px;
+      margin-bottom: 20px;
+    }
+
+    table th, table td {
+      border: 1px solid #000;
+      padding: 6px 4px;
+      text-align: center;
+    }
+    table th {
+      background: #f3f4f6;
+      font-weight: 700;
+    }
+    table th, table td {
+      padding: 3px 4px; /* បន្ថយ padding ខ្សោយដើម្បីកាត់កម្ពស់ជួរផ្ទាំង */
+      line-height: 1.2; /* កំណត់ line-height ទាបជាងមុន */
+    }
+    table td.editable {
+      background: #fff;
+      cursor: text;
+    }
+    table td.editable:hover {
+      background: #fef3c7;
+    }
+    table td[contenteditable="true"]:focus {
+      background: #dbeafe;
+      outline: 1px solid #3b82f6;
+    }
+    .align-left {
+      text-align: left !important;
+      padding-left: 5px;
+    }
+    table {
+      font-size: 14px; /* ប្ដូរទំហំអក្សរពី 10px ទៅ 12px */
+    }
+    
+    /* បอต៍វែងក្នុងកោសិកា editable */
+    table td.editable {
+      font-size: 12px;
+    }
+    
+    /* លក់ប្រើនៅលើ heading ផងដែរ */
+    table th {
+      font-size: 12px;
+    }
+    #import-input {
+      display: none;
+    }
+    .row-actions button {
+      margin: 0 2px;
+      padding: 4px 8px;
+      font-size: 12px;
+      cursor: pointer;
+      border: none;
+      border-radius: 4px;
+      background: #ef4444;
+      color: white;
+    }
+    .row-actions button:hover {
+      background: #dc2626;
+    }
+    .gender-select {
+      font-family: 'Noto Sans Khmer', sans-serif;
+      padding: 2px;
+      border: 1px solid #d1d5db;
+      border-radius: 4px;
+      font-size: 10px;
+    }
+    .summary-section {
+      margin: 20px 0;
+      padding: 15px;
+      background: #f9fafb;
+      border: 2px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 12px;
+    }
+    .summary-section strong {
+      font-weight: 700;
+    }
+    .summary-header {
+      margin-bottom: 10px;
+      font-weight: 700;
+    }
+    .age-columns {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+      margin-top: 10px;
+    }
+    .age-column {
+      line-height: 1.6;
+    }
+    .signature-section {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 25px;
+      font-size: 10px;
+    }
+    .signature-box {
+      text-align: center;
+      width: 30%;
+    }
+    .signature-date {
+      margin-bottom: 5px;
+    }
+    .signature-line {
+      margin-top: 60px;
+      border-top: 1px solid #000;
+      padding-top: 5px;
+    }
+    .hide-on-print {
+      display: table-cell;
+    }
+    @media print {
+      body {
+        background: white;
+        padding: 0;
+      }
+      .controls {
+        display: none !important;
+      }
+      .page {
+        box-shadow: none;
+        margin: 0;
+        padding: 5mm;
+        page-break-after: always;
+      }
+      .row-actions, .hide-on-print {
+        display: none !important;
+      }
+      table th.hide-on-print,
+      table td.hide-on-print {
+        display: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="controls">
+    <label for="class-select" style="align-self: center; font-weight: 600;">ជ្រើសថ្នាក់: </label>
+    <select id="class-select">
+      <option value="">-- បង្ហាញទាំងអស់ --</option>
+      <option value="2K">2K (មត្តេយ្យចម្រុះ)</option>
+      <option value="3K">3K (មត្តេយ្យខ្ពស់)</option>
+      <option value="1A">1A (១ក)</option>
+      <option value="1B">1B (១ខ)</option>
+      <option value="2A">2A (២ក)</option>
+      <option value="2B">2B (២ខ)</option>
+      <option value="3A">3A (៣ក)</option>
+      <option value="3B">3B (៣ខ)</option>
+      <option value="4A">4A (៤ក)</option>
+      <option value="4B">4B (៤ខ)</option>
+      <option value="5A">5A (៥ក)</option>
+      <option value="5B">5B (៥ខ)</option>
+      <option value="6A">6A (៦ក)</option>
+      <option value="6B">6B (៦ខ)</option>
+    </select>
+    
+    <button class="btn-add" id="addBtn">➕ បន្ថែមសិស្ស</button>
+    <button class="btn-load" id="loadBtn">📁 បញ្ចូល CSV</button>
+    <input type="file" id="import-input" accept=".csv,text/csv" />
+    <button class="btn-save" id="saveBtn">💾 រក្សាទុក CSV</button>
+    <button class="btn-clear" id="clearBtn">🗑️ លុបទាំងអស់</button>
+    <button class="btn-print" id="printBtn">🖨️ បោះពុម្ព</button>
+  </div>
+
+  <div class="page">
+    <div class="header">
+      <div class="header-title">ព្រះរាជាណាចក្រកម្ពុជា</div>
+      <div class="header-title">ជាតិ សាសនា ព្រះមហាក្សត្រ</div>
+    </div>
+
+    <div class="info-section">
+      <div class="info-row">
+        <span class="info-label">ការិយាល័យអប់រំ យុវជន និងកីឡាស្រុក :</span>
+        <span class="info-value"><input type="text" id="authority" value="ភ្នំស្រុក"></span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">កម្រងសាលា : </span>
+        <span class="info-value"><input type="text" id="unit" value="ស្ពានស្រែង"></span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">ឈ្មោះសាលារៀន :</span>
+        <span class="info-value"><input type="text" id="school" value="សាលាបឋមសិក្សា រោគ"></span>
+      </div>
+    </div>
+
+    <div class="table-title">
+      បញ្ជីរាយនាមសិស្ស ថ្នាក់ទី <span id="show-class">ទាំងអស់</span><br/>
+      ឆ្នាំសិក្សា ២០២៥-២០២៦
+    </div>
+
+    <table id="student-table">
+      <thead>
+        <tr>
+          <th rowspan="2">ល.រ</th>
+          <th rowspan="2">អត្តលេខ</th>
+          <th rowspan="2">គោត្តនាម - នាម</th>
+          <th rowspan="2" class="hide-on-print">ថ្នាក់</th>
+          <th rowspan="2">ភេទ</th>
+          <th rowspan="2">ថ្ងៃខែឆ្នាំកំណើត</th>
+          <th rowspan="2">អាយុ</th>
+          <th colspan="2">ប្រភេទសិស្ស</th>
+          <th colspan="5">ផ្សេងៗ</th>
+          <th rowspan="2" class="row-actions">សកម្មភាព</th>
+        </tr>
+        <tr>
+          <th>សិស្សថ្មី</th>
+          <th>សិស្សត្រួត</th>
+          <th>កំព្រាឳពុក</th>
+          <th>កំព្រាម្ដាយ</th>
+          <th>កំព្រាឳពុកម្ដាយ</th>
+          <th>ពិការ</th>
+          <th>ក្រីក្រ</th>
+        </tr>
+      </thead>
+      <tbody id="table-body">
+      </tbody>
+    </table>
+
+    <div class="summary-section">
+      <div class="summary-header">គណនា:</div>
+      <div>បញ្ជាក់ សិស្សសរុបចំនួន <strong id="sum-total">0</strong> នាក់ ស្រី <strong id="sum-total-female">0</strong> នាក់</div>
+      <div class="age-columns" id="age-breakdown"></div>
+    </div>
+    
+  <div class="signature-section" style="justify-content: space-around;">
+  <div class="signature-box" style="width: 27%;">
+    <div style="text-align: center; font-weight: bold;">បានឃើញ និងឯកភាព</div>
+    <div style="text-align: left; margin-top: 5px;">ថ្ងៃ ........................... ខែ....................ឆ្នាំម្សាញ់ សប្តស័ក ព.ស ២៥៦៩</div>
+    <div style="text-align: left;">ស្ពានស្រែង ថ្ងៃទី....... ខែ............... ឆ្នាំ២០២៦</div>
+    <div style="text-align: center; font-weight: bold; margin-top: 8px;">ប្រធានកម្រង</div>
+    <div class="signature-line" style="margin-top: 60px;">(ហត្ថលេខា និងត្រា)</div>
+  </div>
+  <div class="signature-box" style="width: 20%; text-align: center;">
+    <div style="text-align: center; font-weight: bold;">បានពិនិត្យត្រឹមត្រូវ</div>
+    <div style="text-align: left; margin-top: 5px;">ថ្ងៃចន្ទ ២រោច ខែបុស្ស ឆ្នាំម្សាញ់ សប្តស័ក ព.ស ២៥៦៩</div>
+    <div style="text-align: left;">រោគ ថ្ងៃទី៥ ខែមករា ឆ្នាំ២០១៦</div>
+    <div style="text-align: center; font-weight: bold; margin-top: 8px;">នាយកសាលា</div>
+    <div class="signature-line" style="margin-top: 60px;">(ហត្ថលេខា)</div>
+  </div>
+  <div class="signature-box" style="width: 20%; text-align: center;">
+    <div style="text-align: left; margin-top: 5px;">ថ្ងៃចន្ទ ២រោច ខែបុស្ស ឆ្នាំម្សាញ់ សប្តស័ក ព.ស ២៥៦៩</div>
+    <div style="text-align: left; margin-top: 5px;">រោគ ថ្ងៃទី៥ ខែមករា ឆ្នាំ២០១៦</div>
+<div style="text-align: center; font-weight: bold; margin-top: 8px;">គ្រូបន្ទុកថ្នាក់</strong></div>
+    <div class="signature-line">(ហត្ថលេខា)</div>
+  </div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+  
+  let students = [];
+  let studentIDCounter = 0;
+  
+  const classSelect = document.getElementById('class-select');
+  const showClass = document.getElementById('show-class');
+  const tableBody = document.getElementById('table-body');
+  const importInput = document.getElementById('import-input');
+  
+  // Function to get full class name
+  function getFullClassName(classCode) {
+    const classNames = {
+      '2K': 'មត្តេយ្យចម្រុះ',
+      '3K': 'មត្តេយ្យខ្ពស់',
+      '1A': '១ក',
+      '1B': '១ខ',
+      '2A': '២ក',
+      '2B': '២ខ',
+      '3A': '៣ក',
+      '3B': '៣ខ',
+      '4A': '៤ក',
+      '4B': '៤ខ',
+      '5A': '៥ក',
+      '5B': '៥ខ',
+      '6A': '៦ក',
+      '6B': '៦ខ'
+    };
+    return classNames[classCode] || classCode;
+  }
+  
+  function calculateAge(birthdateStr) {
+    if(!birthdateStr) return '';
+    const parts = birthdateStr.split(/[\/\-\.]/);
+    if(parts.length !== 3) return '';
+    let day, month, year;
+    
+    // Check if format is MM-DD-YYYY or DD/MM/YYYY
+    if(birthdateStr.includes('-')) {
+      month = parseInt(parts[0], 10) - 1;
+      day = parseInt(parts[1], 10);
+      year = parseInt(parts[2], 10);
+    } else {
+      day = parseInt(parts[0], 10);
+      month = parseInt(parts[1], 10) - 1;
+      year = parseInt(parts[2], 10);
+    }
+    
+    const birthDate = new Date(year, month, day);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
+  }
+  
+  function renderTable() {
+    const filterClass = classSelect.value;
+    const fullClassName = filterClass ? getFullClassName(filterClass) : 'ទាំងអស់';
+    showClass.textContent = fullClassName;
+    
+    tableBody.innerHTML = '';
+    
+    let filtered = filterClass ? students.filter(s => s.class === filterClass) : students;
+    
+    filtered.forEach((s, idx) => {
+      const age = calculateAge(s.dob);
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${idx+1}</td>
+        <td contenteditable="true" class="editable" data-field="studentId" data-id="${s.id}">${s.studentId || ''}</td>
+        <td contenteditable="true" class="editable align-left" data-field="name" data-id="${s.id}">${s.name}</td>
+        <td class="hide-on-print" contenteditable="true" class="editable" data-field="class" data-id="${s.id}">${s.class}</td>
+        <td>
+          <select class="gender-select" data-field="gender" data-id="${s.id}">
+            <option value="ប្រុស" ${s.gender === 'ប្រុស' ? 'selected' : ''}>ប្រុស</option>
+            <option value="ស្រី" ${s.gender === 'ស្រី' ? 'selected' : ''}>ស្រី</option>
+          </select>
+        </td>
+        <td contenteditable="true" class="editable" data-field="dob" data-id="${s.id}">${s.dob}</td>
+        <td>${age}</td>
+        <td><input type="checkbox" data-field="newStudent" data-id="${s.id}" ${s.newStudent ? 'checked' : ''}></td>
+        <td><input type="checkbox" data-field="repeatStudent" data-id="${s.id}" ${s.repeatStudent ? 'checked' : ''}></td>
+        <td><input type="checkbox" data-field="fatherOrphan" data-id="${s.id}" ${s.fatherOrphan ? 'checked' : ''}></td>
+        <td><input type="checkbox" data-field="motherOrphan" data-id="${s.id}" ${s.motherOrphan ? 'checked' : ''}></td>
+        <td><input type="checkbox" data-field="bothOrphan" data-id="${s.id}" ${s.bothOrphan ? 'checked' : ''}></td>
+        <td><input type="checkbox" data-field="disabled" data-id="${s.id}" ${s.disabled ? 'checked' : ''}></td>
+        <td><input type="checkbox" data-field="poor" data-id="${s.id}" ${s.poor ? 'checked' : ''}></td>
+        <td class="row-actions">
+          <button class="delete-btn" data-id="${s.id}" title="លុប">❌</button>
+        </td>
+      `;
+      tableBody.appendChild(tr);
+    });
+    
+    attachEventListeners();
+    updateStatistics(filtered);
+  }
+  
+  function attachEventListeners() {
+    document.querySelectorAll('.editable').forEach(el => {
+      el.addEventListener('blur', function() {
+        const id = parseInt(this.getAttribute('data-id'));
+        const field = this.getAttribute('data-field');
+        const value = this.textContent.trim();
+        const student = students.find(s => s.id === id);
+        if(student) {
+          student[field] = value;
+          if(field === 'dob') renderTable();
+        }
+      });
+    });
+    
+    document.querySelectorAll('.gender-select').forEach(el => {
+      el.addEventListener('change', function() {
+        const id = parseInt(this.getAttribute('data-id'));
+        const student = students.find(s => s.id === id);
+        if(student) {
+          student.gender = this.value;
+          renderTable();
+        }
+      });
+    });
+    
+    document.querySelectorAll('input[type="checkbox"]').forEach(el => {
+      el.addEventListener('change', function() {
+        const id = parseInt(this.getAttribute('data-id'));
+        const field = this.getAttribute('data-field');
+        const student = students.find(s => s.id === id);
+        if(student) {
+          student[field] = this.checked;
+        }
+      });
+    });
+    
+    document.querySelectorAll('.delete-btn').forEach(el => {
+      el.addEventListener('click', function() {
+        const id = parseInt(this.getAttribute('data-id'));
+        if(confirm('តើអ្នកប្រាកដចង់លុបសិស្សនេះ?')) {
+          students = students.filter(s => s.id !== id);
+          renderTable();
+        }
+      });
+    });
+  }
+  
+  function updateStatistics(filtered) {
+    const total = filtered.length;
+    const totalFemale = filtered.filter(s => s.gender === 'ស្រី').length;
+    
+    document.getElementById('sum-total').textContent = total;
+    document.getElementById('sum-total-female').textContent = totalFemale;
+    
+    // Calculate age groups
+    const ageGroups = {};
+    filtered.forEach(s => {
+      const age = calculateAge(s.dob);
+      if(age && age >= 2 && age <= 16) {
+        if(!ageGroups[age]) {
+          ageGroups[age] = { total: 0, female: 0 };
+        }
+        ageGroups[age].total++;
+        if(s.gender === 'ស្រី') {
+          ageGroups[age].female++;
+        }
+      }
+    });
+    
+    // Split ages into 3 columns
+    const ages = Object.keys(ageGroups).map(Number).sort((a, b) => a - b);
+    const itemsPerColumn = Math.ceil(ages.length / 3);
+    
+    let col1HTML = '<div class="age-column">';
+    let col2HTML = '<div class="age-column">';
+    let col3HTML = '<div class="age-column">';
+    
+    ages.forEach((age, idx) => {
+      const line = `<div>អាយុ ${age} ឆ្នាំ សរុបចំនួន <strong>${ageGroups[age].total}</strong> នាក់ ស្រី <strong>${ageGroups[age].female}</strong> នាក់</div>`;
+      
+      if(idx < itemsPerColumn) {
+        col1HTML += line;
+      } else if(idx < itemsPerColumn * 2) {
+        col2HTML += line;
+      } else {
+        col3HTML += line;
+      }
+    });
+    
+    col1HTML += '</div>';
+    col2HTML += '</div>';
+    col3HTML += '</div>';
+    
+    document.getElementById('age-breakdown').innerHTML = col1HTML + col2HTML + col3HTML;
+  }
+  
+  function addNewStudent() {
+    const className = classSelect.value || '1A';
+    const newStudent = {
+      id: studentIDCounter++,
+      studentId: '',
+      name: '',
+      class: className,
+      gender: 'ប្រុស',
+      dob: '',
+      newStudent: false,
+      repeatStudent: false,
+      fatherOrphan: false,
+      motherOrphan: false,
+      bothOrphan: false,
+      disabled: false,
+      poor: false
+    };
+    students.push(newStudent);
+    renderTable();
+  }
+  
+  function exportCSV() {
+    const header = 'ល.រ,អត្តលេខ,គោត្តនាម-នាម,ថ្នាក់,ភេទ,ថ្ងៃខែឆ្នាំកំណើត,អាយុ,សិស្សថ្មី,សិស្សចាស់,កំព្រាឪពុក,កំព្រាម្ដាយ,កំព្រាឪពុកម្ដាយ,ពិការ,ក្រីក្រ\n';
+    let csvRows = [header];
+    
+    students.forEach((s, idx) => {
+      const row = [
+        idx + 1,
+        s.studentId || '',
+        `"${s.name}"`,
+        s.class,
+        s.gender,
+        s.dob,
+        calculateAge(s.dob),
+        s.newStudent ? '1' : '0',
+        s.repeatStudent ? '1' : '0',
+        s.fatherOrphan ? '1' : '0',
+        s.motherOrphan ? '1' : '0',
+        s.bothOrphan ? '1' : '0',
+        s.disabled ? '1' : '0',
+        s.poor ? '1' : '0'
+      ].join(',');
+      csvRows.push(row);
+    });
+    
+    const csvString = '\uFEFF' + csvRows.join('\n');
+    const blob = new Blob([csvString], {type:'text/csv;charset=utf-8;'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'បញ្ជីសិស្ស_' + new Date().toISOString().split('T')[0] + '.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }
+  
+  function clearTable() {
+    if(confirm('តើអ្នកប្រាកដចង់លុបទិន្នន័យសិស្សទាំងអស់?')) {
+      students = [];
+      studentIDCounter = 0;
+      renderTable();
+    }
+  }
+  
+  // Event Listeners
+  document.getElementById('addBtn').addEventListener('click', addNewStudent);
+  document.getElementById('loadBtn').addEventListener('click', function() {
+    importInput.click();
+  });
+  document.getElementById('saveBtn').addEventListener('click', exportCSV);
+  document.getElementById('clearBtn').addEventListener('click', clearTable);
+  document.getElementById('printBtn').addEventListener('click', function() {
+    window.print();
+  });
+  classSelect.addEventListener('change', renderTable);
+  importInput.addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if(!file) return;
+    
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      encoding: 'UTF-8',
+      complete: function(results) {
+        results.data.forEach(row => {
+          const student = {
+            id: studentIDCounter++,
+            studentId: row['អត្តលេខ'] || row['StudentId'] || '',
+            name: row['គោត្តនាម-នាម'] || row['Name'] || '',
+            class: row['ថ្នាក់'] || row['Class'] || '1A',
+            gender: row['ភេទ'] || row['Gender'] || 'ប្រុស',
+            dob: row['ថ្ងៃខែឆ្នាំកំណើត'] || row['DOB'] || '',
+            newStudent: (row['សិស្សថ្មី'] || row['NewStudent'] || '0') === '1',
+            repeatStudent: (row['សិស្សចាស់'] || row['RepeatStudent'] || '0') === '1',
+            fatherOrphan: (row['កំព្រាឪពុក'] || row['FatherOrphan'] || '0') === '1',
+            motherOrphan: (row['កំព្រាម្ដាយ'] || row['MotherOrphan'] || '0') === '1',
+            bothOrphan: (row['កំព្រាឪពុកម្ដាយ'] || row['BothOrphan'] || '0') === '1',
+            disabled: (row['ពិការ'] || row['Disabled'] || '0') === '1',
+            poor: (row['ក្រីក្រ'] || row['Poor'] || '0') === '1'
+          };
+          students.push(student);
+        });
+        renderTable();
+      },
+      error: function(err) {
+        alert('Error loading CSV file: ' + err.message);
+      }
+    });
+  });
+
+  // Initial render
+  renderTable();
+})();
+</script>
